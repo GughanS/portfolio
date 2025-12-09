@@ -146,7 +146,7 @@ export default function App() {
   const Navbar = () => (
     <nav className="navbar">
       <div className="container nav-content">
-        <span className="logo">GS.</span>
+        <span className="logo">GS</span>
         <div className="nav-links">
           <a href="#about">About</a>
           <a href="#skills">Skills</a>
