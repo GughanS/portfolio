@@ -49,6 +49,7 @@ ul {
 
 .section {
   padding: 5rem 1rem;
+  position: relative; /* For edit buttons */
 }
 
 .grid {
@@ -114,6 +115,7 @@ ul {
   display: flex;
   flex-direction: column;
   gap: 3rem;
+  position: relative;
 }
 
 @media (min-width: 768px) {
@@ -255,6 +257,7 @@ ul {
 
 .section-header {
   margin-bottom: 3rem;
+  position: relative;
 }
 
 .section-title {
@@ -269,6 +272,7 @@ ul {
   border-radius: 0.75rem;
   padding: 1.5rem;
   transition: transform 0.2s, border-color 0.2s;
+  position: relative;
 }
 
 .skill-card:hover {
@@ -478,6 +482,7 @@ ul {
   padding: 2rem;
   color: var(--text-muted);
   font-size: 0.875rem;
+  position: relative;
 }
 
 .text-error { color: #f87171; }
@@ -487,4 +492,93 @@ ul {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: .5; }
+}
+
+/* --- Admin Edit UI --- */
+.edit-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid var(--accent-blue);
+  color: var(--accent-blue);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 2rem;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.5rem;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.admin-login-trigger {
+  color: var(--bg-primary); /* Almost invisible */
+  cursor: pointer;
+  font-size: 0.75rem;
+  margin-top: 2rem;
+  display: inline-block;
+  opacity: 0.5;
+}
+
+.admin-login-trigger:hover {
+  color: var(--text-muted);
 }
