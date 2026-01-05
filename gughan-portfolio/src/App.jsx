@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './App.css'; // Importing the CSS file is crucial!
 import { 
   Github, 
   Linkedin, 
