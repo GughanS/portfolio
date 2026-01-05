@@ -172,6 +172,21 @@ ul {
   flex: 1;
 }
 
+.profile-pic-container {
+  margin-bottom: 1.5rem;
+  position: relative;
+  display: inline-block;
+}
+
+.profile-pic {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -614,16 +629,24 @@ ul {
 }
 
 .admin-login-trigger {
-  color: var(--bg-primary); /* Almost invisible */
+  color: var(--text-secondary); /* Made visible */
   cursor: pointer;
-  font-size: 0.75rem;
-  margin-top: 2rem;
-  display: inline-block;
-  opacity: 0.5;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.8;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  transition: all 0.2s;
 }
 
 .admin-login-trigger:hover {
-  color: var(--text-muted);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  opacity: 1;
 }
 `;
 
@@ -657,6 +680,7 @@ const initialContent = {
     name: "Gughan S",
     role: "Machine Learning Engineer",
     location: "Chennai, India",
+    profilePic: "https://github.com/GughanS.png", // Default placeholder
     education: {
       college: "Saveetha Engineering College",
       degree: "B.Tech Artificial Intelligence & Machine Learning",
@@ -666,7 +690,7 @@ const initialContent = {
       github: "https://github.com/GughanS",
       linkedin: "https://linkedin.com/in/gughan-s",
       email: "mailto:gughanguguu@gmail.com",
-      resume: "#"
+      resume: "https://drive.google.com/file/d/1qJJbrLf5SzYiVjlSb67IzPtb0R14w1U9/view?usp=sharing"
     }
   },
   skillCategories: [
@@ -749,7 +773,12 @@ export default function App() {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setContent(docSnap.data());
+          const data = docSnap.data();
+          // Ensure profilePic exists in data (migration for old docs)
+          if (!data.personalInfo.profilePic) {
+             data.personalInfo.profilePic = initialContent.personalInfo.profilePic;
+          }
+          setContent(data);
         } else {
           await setDoc(docRef, initialContent);
           setContent(initialContent);
@@ -835,11 +864,27 @@ export default function App() {
                 <div className="form-group"><label>Name</label><input className="form-input" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} /></div>
                 <div className="form-group"><label>Role</label><input className="form-input" value={editData.role} onChange={e => setEditData({...editData, role: e.target.value})} /></div>
                 <div className="form-group"><label>Location</label><input className="form-input" value={editData.location} onChange={e => setEditData({...editData, location: e.target.value})} /></div>
-                <div className="form-group"><label>College</label><input className="form-input" value={editData.education.college} onChange={e => setEditData({...editData, education: {...editData.education, college: e.target.value}})} /></div>
-                <div className="form-group"><label>Degree</label><input className="form-input" value={editData.education.degree} onChange={e => setEditData({...editData, education: {...editData.education, degree: e.target.value}})} /></div>
-                <div className="form-group"><label>CGPA</label><input className="form-input" value={editData.education.cgpa} onChange={e => setEditData({...editData, education: {...editData.education, cgpa: e.target.value}})} /></div>
-                <div className="form-group"><label>Resume URL</label><input className="form-input" value={editData.social.resume} onChange={e => setEditData({...editData, social: {...editData.social, resume: e.target.value}})} /></div>
-                <div className="form-group"><label>GitHub URL</label><input className="form-input" value={editData.social.github} onChange={e => setEditData({...editData, social: {...editData.social, github: e.target.value}})} /></div>
+                
+                <div className="pt-2 border-t border-slate-700">
+                    <label className="text-sm font-bold text-slate-300">Profile Picture</label>
+                    <div className="form-group mt-1">
+                        <label>Image URL</label>
+                        <input className="form-input" placeholder="https://..." value={editData.profilePic} onChange={e => setEditData({...editData, profilePic: e.target.value})} />
+                        <p className="text-xs text-slate-500 mt-1">Paste a link to your photo (e.g. from GitHub or LinkedIn)</p>
+                    </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-700">
+                     <label className="text-sm font-bold text-slate-300">Education</label>
+                    <div className="form-group mt-1"><label>College</label><input className="form-input" value={editData.education.college} onChange={e => setEditData({...editData, education: {...editData.education, college: e.target.value}})} /></div>
+                    <div className="form-group"><label>Degree</label><input className="form-input" value={editData.education.degree} onChange={e => setEditData({...editData, education: {...editData.education, degree: e.target.value}})} /></div>
+                    <div className="form-group"><label>CGPA</label><input className="form-input" value={editData.education.cgpa} onChange={e => setEditData({...editData, education: {...editData.education, cgpa: e.target.value}})} /></div>
+                </div>
+                <div className="pt-2 border-t border-slate-700">
+                    <label className="text-sm font-bold text-slate-300">Social Links</label>
+                    <div className="form-group mt-1"><label>Resume URL</label><input className="form-input" value={editData.social.resume} onChange={e => setEditData({...editData, social: {...editData.social, resume: e.target.value}})} /></div>
+                    <div className="form-group"><label>GitHub URL</label><input className="form-input" value={editData.social.github} onChange={e => setEditData({...editData, social: {...editData.social, github: e.target.value}})} /></div>
+                </div>
               </>
             )}
 
@@ -959,6 +1004,13 @@ export default function App() {
         <div className="container">
           <div className="hero-content">
             <div className="hero-text">
+              
+              {content.personalInfo.profilePic && (
+                <div className="profile-pic-container">
+                  <img src={content.personalInfo.profilePic} alt="Profile" className="profile-pic" />
+                </div>
+              )}
+
               <div className="status-badge">
                 <span className="status-dot"></span>Open to Opportunities
               </div>
@@ -1087,7 +1139,7 @@ export default function App() {
       <footer className="footer">
         <p>© {new Date().getFullYear()} {content.personalInfo.name}. Built with React & Vanilla CSS.</p>
         <span className="admin-login-trigger" onClick={() => setIsLoginOpen(true)}>
-           • Admin Login
+           <Lock size={12} /> Admin Login
         </span>
       </footer>
     </div>
