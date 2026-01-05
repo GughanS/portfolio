@@ -20,7 +20,11 @@ import {
   X,
   Trash2,
   Plus,
-  Lock
+  Lock,
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  AlertCircle
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -648,6 +652,44 @@ ul {
   background: var(--bg-tertiary);
   opacity: 1;
 }
+
+.upload-btn-wrapper {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.btn-upload {
+  border: 1px dashed var(--text-secondary);
+  color: var(--text-secondary);
+  background-color: transparent;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-upload:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.upload-input {
+  font-size: 100px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  cursor: pointer;
+}
 `;
 
 // --- Firebase Configuration & Setup ---
@@ -749,6 +791,7 @@ export default function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [editSection, setEditSection] = useState(null);
   const [editData, setEditData] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
 
   // --- Auth & Data Fetching ---
   useEffect(() => {
@@ -774,7 +817,6 @@ export default function App() {
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // Ensure profilePic exists in data (migration for old docs)
           if (!data.personalInfo.profilePic) {
              data.personalInfo.profilePic = initialContent.personalInfo.profilePic;
           }
@@ -825,10 +867,36 @@ export default function App() {
       await updateDoc(docRef, updatedContent);
       setContent(updatedContent);
       setEditSection(null);
+      setUploadError(null);
     } catch (error) {
       console.error("Error saving:", error);
       alert("Failed to save. Check console.");
     }
+  };
+
+  // Helper to process file uploads (Image or PDF)
+  const handleFileUpload = (e, field) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadError(null);
+
+    // Limit size to ~800KB to fit in Firestore doc (1MB limit)
+    if (file.size > 800 * 1024) {
+      setUploadError(`File too large (${(file.size / 1024).toFixed(0)}KB). Limit is 800KB. For larger files, please host on Google Drive and paste the link.`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      if (field === 'profilePic') {
+        setEditData({ ...editData, profilePic: base64String });
+      } else if (field === 'resume') {
+        setEditData({ ...editData, social: { ...editData.social, resume: base64String } });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // --- UI Components ---
@@ -840,6 +908,7 @@ export default function App() {
         onClick={() => {
           setEditSection(section);
           setEditData(JSON.parse(JSON.stringify(data)));
+          setUploadError(null);
         }}
       >
         <Pencil size={16} />
@@ -858,6 +927,13 @@ export default function App() {
             <button className="modal-close" onClick={() => setEditSection(null)}><X /></button>
           </div>
           
+          {uploadError && (
+             <div className="bg-red-500/10 border border-red-500/50 p-3 rounded mb-4 flex items-start gap-2">
+               <AlertCircle className="text-red-500 w-5 h-5 shrink-0" />
+               <p className="text-red-400 text-sm">{uploadError}</p>
+             </div>
+          )}
+
           <div className="space-y-4">
             {editSection === 'personal' && (
               <>
@@ -865,12 +941,21 @@ export default function App() {
                 <div className="form-group"><label>Role</label><input className="form-input" value={editData.role} onChange={e => setEditData({...editData, role: e.target.value})} /></div>
                 <div className="form-group"><label>Location</label><input className="form-input" value={editData.location} onChange={e => setEditData({...editData, location: e.target.value})} /></div>
                 
+                {/* Profile Picture Upload */}
                 <div className="pt-2 border-t border-slate-700">
-                    <label className="text-sm font-bold text-slate-300">Profile Picture</label>
+                    <label className="text-sm font-bold text-slate-300 mb-2 block">Profile Picture</label>
+                    <div className="flex items-center gap-4 mb-3">
+                      <img src={editData.profilePic} alt="Preview" className="w-16 h-16 rounded-full object-cover border border-slate-600" />
+                      <div className="flex-1">
+                         <div className="upload-btn-wrapper">
+                            <button className="btn-upload"><ImageIcon size={16}/> Upload New Picture</button>
+                            <input type="file" name="profilePic" className="upload-input" accept="image/*" onChange={(e) => handleFileUpload(e, 'profilePic')} />
+                         </div>
+                      </div>
+                    </div>
                     <div className="form-group mt-1">
-                        <label>Image URL</label>
+                        <label className="text-xs text-slate-500">Or use Image URL</label>
                         <input className="form-input" placeholder="https://..." value={editData.profilePic} onChange={e => setEditData({...editData, profilePic: e.target.value})} />
-                        <p className="text-xs text-slate-500 mt-1">Paste a link to your photo (e.g. from GitHub or LinkedIn)</p>
                     </div>
                 </div>
 
@@ -880,9 +965,23 @@ export default function App() {
                     <div className="form-group"><label>Degree</label><input className="form-input" value={editData.education.degree} onChange={e => setEditData({...editData, education: {...editData.education, degree: e.target.value}})} /></div>
                     <div className="form-group"><label>CGPA</label><input className="form-input" value={editData.education.cgpa} onChange={e => setEditData({...editData, education: {...editData.education, cgpa: e.target.value}})} /></div>
                 </div>
+
+                {/* Resume Upload */}
                 <div className="pt-2 border-t border-slate-700">
-                    <label className="text-sm font-bold text-slate-300">Social Links</label>
-                    <div className="form-group mt-1"><label>Resume URL</label><input className="form-input" value={editData.social.resume} onChange={e => setEditData({...editData, social: {...editData.social, resume: e.target.value}})} /></div>
+                    <label className="text-sm font-bold text-slate-300 mb-2 block">Social & Resume</label>
+                    
+                    <div className="form-group">
+                       <label>Resume (PDF Link or Upload)</label>
+                       <div className="flex gap-2 mb-2">
+                          <input className="form-input flex-1" value={editData.social.resume} onChange={e => setEditData({...editData, social: {...editData.social, resume: e.target.value}})} placeholder="Paste Link or Upload PDF..." />
+                          <div className="upload-btn-wrapper" style={{width: 'auto'}}>
+                            <button className="btn-upload" title="Upload PDF"><Upload size={16}/></button>
+                            <input type="file" className="upload-input" accept="application/pdf" onChange={(e) => handleFileUpload(e, 'resume')} />
+                          </div>
+                       </div>
+                       <p className="text-xs text-slate-500">Note: Large PDFs should be hosted on Google Drive.</p>
+                    </div>
+
                     <div className="form-group"><label>GitHub URL</label><input className="form-input" value={editData.social.github} onChange={e => setEditData({...editData, social: {...editData.social, github: e.target.value}})} /></div>
                 </div>
               </>
