@@ -571,6 +571,11 @@ ul {
   transition: all 0.2s;
 }
 
+/* Fix for Hero section edit button being hidden by navbar */
+.hero-section .edit-btn {
+  top: 5rem;
+}
+
 .edit-btn:hover {
   background: var(--accent-blue);
   color: white;
