@@ -1,703 +1,43 @@
-import React, { useState, useEffect } from 'react';
-// Styles are embedded below to ensure stability in all environments
-import { 
-  Github, 
-  Linkedin, 
-  Mail, 
-  MapPin, 
-  Download, 
-  Code2, 
-  Database, 
-  Brain, 
-  Terminal, 
-  Send,
-  Cpu,
-  GraduationCap,
-  ExternalLink,
-  ChevronRight,
-  Pencil,
+import { useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import {
   Save,
-  X,
   Trash2,
   Plus,
-  Lock,
   Upload,
-  FileText,
   Image as ImageIcon,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
+import {
+  getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signOut
+  signOut,
 } from 'firebase/auth';
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
+import {
+  getFirestore,
+  collection,
+  addDoc,
   doc,
   getDoc,
   setDoc,
   updateDoc,
-  serverTimestamp 
+  serverTimestamp,
 } from 'firebase/firestore';
 
-// --- CSS Styles ---
-const styles = `
-/* --- Global Reset & Variables --- */
-:root {
-  --bg-primary: #020617; /* Slate 950 */
-  --bg-secondary: #0f172a; /* Slate 900 */
-  --bg-tertiary: #1e293b; /* Slate 800 */
-  
-  --text-primary: #f8fafc; /* Slate 50 */
-  --text-secondary: #94a3b8; /* Slate 400 */
-  --text-muted: #64748b; /* Slate 500 */
-  
-  --accent-blue: #3b82f6;
-  --accent-emerald: #10b981;
-  --accent-purple: #a855f7;
-  --accent-orange: #f97316;
-  
-  --border-color: #1e293b;
-  --font-sans: system-ui, -apple-system, sans-serif;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  line-height: 1.6;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
-  transition: color 0.2s;
-}
-
-ul {
-  list-style: none;
-}
-
-/* --- Layout Utilities --- */
-.container {
-  max-width: 1152px; /* Similar to max-w-6xl */
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.section {
-  padding: 5rem 1rem;
-  position: relative; /* For edit buttons */
-}
-
-.grid {
-  display: grid;
-  gap: 2rem;
-}
-
-.grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.grid-4 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-
-/* --- Navbar --- */
-.navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 1000;
-  height: 64px;
-}
-
-.nav-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 100%;
-}
-
-.logo {
-  font-size: 1.25rem;
-  font-weight: 800;
-  background: linear-gradient(to right, var(--accent-blue), var(--accent-emerald));
-  -webkit-background-clip: text;
-  color: transparent;
-}
-
-.nav-links {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.nav-links a {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.nav-links a:hover {
-  color: var(--text-primary);
-}
-
-/* --- Hero Section --- */
-.hero-section {
-  padding-top: 8rem;
-  padding-bottom: 5rem;
-}
-
-.hero-content {
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
-  position: relative;
-}
-
-@media (min-width: 768px) {
-  .hero-content {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-}
-
-.hero-text {
-  flex: 1;
-}
-
-.profile-pic-container {
-  margin-bottom: 1.5rem;
-  position: relative;
-  display: inline-block;
-}
-
-.profile-pic {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 4px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 9999px;
-  color: #34d399;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 1.5rem;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background-color: var(--accent-emerald);
-  border-radius: 50%;
-  margin-right: 0.5rem;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-}
-
-.title {
-  font-size: 3rem;
-  font-weight: 700;
-  line-height: 1.1;
-  margin-bottom: 0.5rem;
-}
-
-.subtitle {
-  font-size: 1.5rem;
-  color: var(--text-secondary);
-  font-weight: 300;
-  margin-bottom: 1.5rem;
-}
-
-.description {
-  color: var(--text-secondary);
-  font-size: 1.125rem;
-  max-width: 600px;
-  margin-bottom: 2rem;
-}
-
-.social-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.btn-primary {
-  background-color: var(--accent-blue);
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #2563eb;
-  transform: translateY(-1px);
-}
-
-.btn-secondary {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover {
-  background-color: #334155;
-}
-
-/* --- Stats Card --- */
-.stats-card {
-  width: 100%;
-  max-width: 320px;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
-  border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  padding: 1.5rem;
-}
-
-.stats-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-.stats-divider {
-  height: 1px;
-  background-color: var(--border-color);
-  margin: 1rem 0;
-}
-
-.tag-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tag {
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-}
-
-/* --- Skills Section --- */
-.skills-section {
-  background: rgba(15, 23, 42, 0.3);
-}
-
-.section-header {
-  margin-bottom: 3rem;
-  position: relative;
-}
-
-.section-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.skill-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  transition: transform 0.2s, border-color 0.2s;
-  position: relative;
-}
-
-.skill-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--text-muted);
-}
-
-.skill-icon-wrapper {
-  background: var(--bg-primary);
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  display: inline-block;
-  margin-bottom: 1rem;
-}
-
-.skill-list li {
-  display: flex;
-  align-items: center;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin-bottom: 0.5rem;
-}
-
-.skill-list svg {
-  margin-right: 0.5rem;
-  color: var(--text-muted);
-}
-
-/* --- Projects Section --- */
-.projects-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 3rem;
-}
-
-.github-link {
-  display: none;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--accent-blue);
-}
-
-@media (min-width: 768px) {
-  .github-link { display: flex; }
-}
-
-.project-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: border-color 0.2s;
-  position: relative;
-}
-
-.project-card:hover {
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.project-image {
-  height: 192px;
-  background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.project-external-icon {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.project-card:hover .project-external-icon {
-  opacity: 1;
-}
-
-.project-content {
-  padding: 1.5rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.project-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: var(--text-primary);
-}
-
-.project-card:hover .project-title {
-  color: var(--accent-blue);
-}
-
-.project-desc {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-  flex: 1;
-}
-
-.tech-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: auto;
-}
-
-.tech-tag {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-}
-
-/* --- Contact Section --- */
-.contact-container {
-  background: linear-gradient(135deg, var(--bg-secondary), #020617);
-  border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  padding: 2rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.contact-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 3rem;
-  position: relative;
-  z-index: 10;
-}
-
-@media (min-width: 768px) {
-  .contact-container { padding: 3rem; }
-  .contact-grid { grid-template-columns: 1fr 1fr; }
-}
-
-.contact-info-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  color: var(--text-secondary);
-}
-
-.icon-box {
-  width: 40px;
-  height: 40px;
-  background: var(--bg-tertiary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.form-box {
-  background: rgba(2, 6, 23, 0.5);
-  padding: 1.5rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(30, 41, 59, 0.5);
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-}
-
-.form-input {
-  width: 100%;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
-  color: white;
-  font-family: inherit;
-  outline: none;
-}
-
-.form-input:focus {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.submit-btn {
-  width: 100%;
-  justify-content: center;
-}
-
-.footer {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  position: relative;
-}
-
-.text-error { color: #f87171; }
-.text-success { color: #86efac; }
-.animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .5; }
-}
-
-/* --- Admin Edit UI --- */
-.edit-btn {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid var(--accent-blue);
-  color: var(--accent-blue);
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  z-index: 50;
-  transition: all 0.2s;
-}
-
-/* Fix for Hero section edit button being hidden by navbar */
-.hero-section .edit-btn {
-  top: 5rem;
-}
-
-.edit-btn:hover {
-  background: var(--accent-blue);
-  color: white;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-.modal-content {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  padding: 2rem;
-  border-radius: 1rem;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.modal-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 1.5rem;
-}
-
-.modal-close:hover {
-  color: var(--text-primary);
-}
-
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.admin-login-trigger {
-  color: var(--text-secondary); /* Made visible */
-  cursor: pointer;
-  font-size: 0.875rem;
-  margin-top: 1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  opacity: 0.8;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  transition: all 0.2s;
-}
-
-.admin-login-trigger:hover {
-  color: var(--text-primary);
-  background: var(--bg-tertiary);
-  opacity: 1;
-}
-
-.upload-btn-wrapper {
-  position: relative;
-  overflow: hidden;
-  display: inline-block;
-}
-
-.btn-upload {
-  border: 1px dashed var(--text-secondary);
-  color: var(--text-secondary);
-  background-color: transparent;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s;
-}
-
-.btn-upload:hover {
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
-  background-color: rgba(59, 130, 246, 0.1);
-}
-
-.upload-input {
-  font-size: 100px;
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-`;
-
-// --- Firebase Configuration & Setup ---
+import { PortfolioProvider } from './context/PortfolioContext';
+import { ToastProvider, useToast } from './components/Toast';
+import LoadingScreen from './components/LoadingScreen';
+import Modal from './components/Modal';
+import Navbar from './components/Navbar';
+import Hero from './components/Hero';
+import Skills from './components/Skills';
+import Projects from './components/Projects';
+import Contact from './components/Contact';
+import Footer from './components/Footer';
+
+// --- Firebase Configuration ---
 const firebaseConfig = {
   apiKey: "AIzaSyD179CAOa6Mp7fh6E55XDCFqVNBP1IdlcE",
   authDomain: "portfolio-cd766.firebaseapp.com",
@@ -705,125 +45,140 @@ const firebaseConfig = {
   storageBucket: "portfolio-cd766.firebasestorage.app",
   messagingSenderId: "921183592594",
   appId: "1:921183592594:web:b0ca7d6f170b3d9a04064b",
-  measurementId: "G-HSF0F88RTV"
+  measurementId: "G-HSF0F88RTV",
 };
 
-// Initialize Firebase safely
 let app, auth, db;
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
 } catch (error) {
-  console.warn("Firebase not initialized. Check your config keys.", error);
+  console.warn('Firebase not initialized. Check your config keys.', error);
 }
 
-const appId = 'gughan-portfolio';
+const APP_ID = 'gughan-portfolio';
 const CONTENT_DOC_ID = 'main';
 
 // --- Initial Data ---
 const initialContent = {
   personalInfo: {
-    name: "Gughan S",
-    role: "Machine Learning Engineer",
-    location: "Chennai, India",
-    profilePic: "https://github.com/GughanS.png", // Default placeholder
+    name: 'Gughan S',
+    role: 'Machine Learning Engineer',
+    location: 'Chennai, India',
+    profilePic: 'https://github.com/GughanS.png',
     education: {
-      college: "Saveetha Engineering College",
-      degree: "B.Tech Artificial Intelligence & Machine Learning",
-      cgpa: "8.05"
+      college: 'Saveetha Engineering College',
+      degree: 'B.Tech Artificial Intelligence & Machine Learning',
+      cgpa: '8.05',
     },
     social: {
-      github: "https://github.com/GughanS",
-      linkedin: "https://linkedin.com/in/gughan-s",
-      email: "mailto:gughanguguu@gmail.com",
-      resume: "https://drive.google.com/file/d/1qJJbrLf5SzYiVjlSb67IzPtb0R14w1U9/view?usp=sharing"
-    }
+      github: 'https://github.com/GughanS',
+      linkedin: 'https://linkedin.com/in/gughan-s',
+      email: 'mailto:gughanguguu@gmail.com',
+      resume: 'https://drive.google.com/file/d/1qJJbrLf5SzYiVjlSb67IzPtb0R14w1U9/view?usp=sharing',
+    },
   },
   skillCategories: [
     {
-      title: "Machine Learning & DS",
-      skills: ["Scikit-learn", "NumPy", "Pandas", "TensorFlow", "Keras", "PyTorch", "Matplotlib/Seaborn", "NLP", "ONNX"]
+      title: 'Machine Learning & DS',
+      skills: ['Scikit-learn', 'NumPy', 'Pandas', 'TensorFlow', 'Keras', 'PyTorch', 'Matplotlib/Seaborn', 'NLP', 'ONNX'],
     },
     {
-      title: "Languages",
-      skills: ["Python", "C", "C++", "SQL"]
+      title: 'Languages',
+      skills: ['Python', 'C', 'C++', 'SQL'],
     },
     {
-      title: "Databases",
-      skills: ["MySQL", "PostgreSQL", "MongoDB", "Firebase", "DBMS"]
+      title: 'Databases',
+      skills: ['MySQL', 'PostgreSQL', 'MongoDB', 'Firebase', 'DBMS'],
     },
     {
-      title: "Core Tech & Tools",
-      skills: ["RESTful APIs", "Git/GitHub", "Data Structures & Algorithms (Intermediate)"]
-    }
+      title: 'Core Tech & Tools',
+      skills: ['RESTful APIs', 'Git/GitHub', 'Data Structures & Algorithms (Intermediate)'],
+    },
   ],
   projects: [
     {
-      title: "FastAPI Assets",
-      link: "https://github.com/OpenVerge/fastapi-assets",
-      tech: ["FastAPI", "Python", "Backend"],
-      description: "A comprehensive collection of assets and utilities designed to streamline FastAPI application development and deployment workflows.",
+      title: 'FastAPI Assets',
+      link: 'https://github.com/OpenVerge/fastapi-assets',
+      tech: ['FastAPI', 'Python', 'Backend'],
+      description: 'A comprehensive collection of assets and utilities designed to streamline FastAPI application development and deployment workflows.',
     },
     {
-      title: "Aegis Emergency Response",
-      link: "https://github.com/GughanS/aegis-emergency-response.git",
-      tech: ["Python", "Real-time Systems", "Automation"],
-      description: "An intelligent emergency response system designed to optimize incident handling and response times through automated data processing.",
+      title: 'Aegis Emergency Response',
+      link: 'https://github.com/GughanS/aegis-emergency-response.git',
+      tech: ['Python', 'Real-time Systems', 'Automation'],
+      description: 'An intelligent emergency response system designed to optimize incident handling and response times through automated data processing.',
     },
     {
-      title: "EchoSight",
-      link: "https://github.com/GughanS/EchoSight",
-      tech: ["Computer Vision", "Deep Learning", "Python"],
-      description: "A computer vision application leveraging deep learning models for advanced visual recognition and processing tasks.",
+      title: 'EchoSight',
+      link: 'https://github.com/GughanS/EchoSight',
+      tech: ['Computer Vision', 'Deep Learning', 'Python'],
+      description: 'A computer vision application leveraging deep learning models for advanced visual recognition and processing tasks.',
     },
     {
-      title: "Filtered Image Fetcher",
-      link: "https://github.com/GughanS/filtered-image-fetcher",
-      tech: ["Python", "Scripting", "Data Collection"],
-      description: "An automated tool for fetching, filtering, and organizing datasets of images based on specific criteria or metadata.",
-    }
-  ]
+      title: 'Filtered Image Fetcher',
+      link: 'https://github.com/GughanS/filtered-image-fetcher',
+      tech: ['Python', 'Scripting', 'Data Collection'],
+      description: 'An automated tool for fetching, filtering, and organizing datasets of images based on specific criteria or metadata.',
+    },
+  ],
 };
 
-export default function App() {
+const inputStyle = {
+  width: '100%',
+  background: 'var(--bg-tertiary)',
+  border: '1px solid var(--border-color)',
+  borderRadius: '0.5rem',
+  padding: '0.6rem 1rem',
+  color: 'var(--text-primary)',
+  fontFamily: 'inherit',
+  fontSize: '0.9rem',
+  outline: 'none',
+};
+
+const btnStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  padding: '0.6rem 1rem',
+  borderRadius: '0.5rem',
+  fontWeight: 500,
+  fontSize: '0.85rem',
+  cursor: 'pointer',
+  border: 'none',
+  transition: 'all 0.2s',
+};
+
+function AppInner() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [content, setContent] = useState(initialContent);
   const [loading, setLoading] = useState(true);
-
-  // UI States
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [editSection, setEditSection] = useState(null);
   const [editData, setEditData] = useState(null);
   const [uploadError, setUploadError] = useState(null);
+  const addToast = useToast();
 
-  // --- Auth & Data Fetching ---
+  // Auth & Data
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
+    if (!auth) { setLoading(false); return; }
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       const adminEmail = initialContent.personalInfo.social.email.replace('mailto:', '');
-      if (currentUser && currentUser.email === adminEmail) {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
+      setIsAdmin(currentUser?.email === adminEmail);
     });
 
     const fetchContent = async () => {
       try {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'content', CONTENT_DOC_ID);
+        const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'content', CONTENT_DOC_ID);
         const docSnap = await getDoc(docRef);
-
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (!data.personalInfo.profilePic) {
-             data.personalInfo.profilePic = initialContent.personalInfo.profilePic;
+            data.personalInfo.profilePic = initialContent.personalInfo.profilePic;
           }
           setContent(data);
         } else {
@@ -831,7 +186,7 @@ export default function App() {
           setContent(initialContent);
         }
       } catch (err) {
-        console.error("Error fetching content:", err);
+        console.error('Error fetching content:', err);
       } finally {
         setLoading(false);
       }
@@ -841,7 +196,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // --- Handlers ---
   const handleLogin = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
@@ -849,403 +203,306 @@ export default function App() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       setIsLoginOpen(false);
+      addToast('Logged in successfully', 'success');
     } catch (error) {
-      alert("Login failed: " + error.message);
+      addToast('Login failed: ' + error.message, 'error');
     }
   };
 
   const handleLogout = async () => {
     await signOut(auth);
     setIsAdmin(false);
+    addToast('Logged out', 'info');
   };
 
   const handleSave = async () => {
     if (!isAdmin || !db) return;
     try {
-      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'content', CONTENT_DOC_ID);
+      const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'content', CONTENT_DOC_ID);
       let updatedContent = { ...content };
-
       if (editSection === 'personal') updatedContent.personalInfo = editData;
       if (editSection === 'skills') updatedContent.skillCategories = editData;
       if (editSection === 'projects') updatedContent.projects = editData;
-
       await updateDoc(docRef, updatedContent);
       setContent(updatedContent);
       setEditSection(null);
       setUploadError(null);
+      addToast('Changes saved!', 'success');
     } catch (error) {
-      console.error("Error saving:", error);
-      alert("Failed to save. Check console.");
+      console.error('Error saving:', error);
+      addToast('Failed to save: ' + error.message, 'error');
     }
   };
 
-  // Helper to process file uploads (Image or PDF)
   const handleFileUpload = (e, field) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setUploadError(null);
-
-    // Limit size to ~800KB to fit in Firestore doc (1MB limit)
     if (file.size > 800 * 1024) {
-      setUploadError(`File too large (${(file.size / 1024).toFixed(0)}KB). Limit is 800KB. For larger files, please host on Google Drive and paste the link.`);
+      setUploadError(`File too large (${(file.size / 1024).toFixed(0)}KB). Limit is 800KB.`);
       return;
     }
-
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64String = reader.result;
       if (field === 'profilePic') {
-        setEditData({ ...editData, profilePic: base64String });
+        setEditData({ ...editData, profilePic: reader.result });
       } else if (field === 'resume') {
-        setEditData({ ...editData, social: { ...editData.social, resume: base64String } });
+        setEditData({ ...editData, social: { ...editData.social, resume: reader.result } });
       }
     };
     reader.readAsDataURL(file);
   };
 
-  // --- UI Components ---
-  const EditBtn = ({ section, data }) => {
-    if (!isAdmin) return null;
-    return (
-      <button 
-        className="edit-btn" 
-        onClick={() => {
-          setEditSection(section);
-          setEditData(JSON.parse(JSON.stringify(data)));
-          setUploadError(null);
-        }}
-      >
-        <Pencil size={16} />
-      </button>
-    );
+  const openEdit = (section, data) => {
+    setEditSection(section);
+    setEditData(JSON.parse(JSON.stringify(data)));
+    setUploadError(null);
   };
 
-  const EditForm = () => {
-    if (!editSection) return null;
+  const contextValue = {
+    content,
+    isAdmin,
+    user,
+    db,
+    appId: APP_ID,
+    openEdit,
+    handleLogout,
+    setIsLoginOpen,
+  };
 
-    return (
-      <div className="modal-overlay">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h3 className="modal-title">Edit {editSection}</h3>
-            <button className="modal-close" onClick={() => setEditSection(null)}><X /></button>
-          </div>
-          
-          {uploadError && (
-             <div className="bg-red-500/10 border border-red-500/50 p-3 rounded mb-4 flex items-start gap-2">
-               <AlertCircle className="text-red-500 w-5 h-5 shrink-0" />
-               <p className="text-red-400 text-sm">{uploadError}</p>
-             </div>
-          )}
+  return (
+    <PortfolioProvider value={contextValue}>
+      <LoadingScreen
+        isLoading={loading}
+        profilePic={content.personalInfo.profilePic}
+        name={content.personalInfo.name}
+      />
 
-          <div className="space-y-4">
-            {editSection === 'personal' && (
+      {!loading && (
+        <>
+          {/* Animated background */}
+          <div className="animated-bg" />
+
+          <Navbar />
+
+          {/* Login Modal */}
+          <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} title="Admin Login">
+            <form onSubmit={handleLogin}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Email</label>
+                <input name="email" type="email" required style={inputStyle} />
+              </div>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Password</label>
+                <input name="password" type="password" required style={inputStyle} />
+              </div>
+              <button
+                type="submit"
+                style={{
+                  ...btnStyle,
+                  width: '100%',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                  color: 'white',
+                }}
+              >
+                Login
+              </button>
+            </form>
+          </Modal>
+
+          {/* Edit Modal */}
+          <Modal
+            isOpen={!!editSection}
+            onClose={() => setEditSection(null)}
+            title={`Edit ${editSection}`}
+          >
+            {uploadError && (
+              <div style={{
+                background: 'rgba(244,63,94,0.1)',
+                border: '1px solid rgba(244,63,94,0.3)',
+                padding: '0.75rem',
+                borderRadius: '0.5rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.5rem',
+              }}>
+                <AlertCircle size={16} color="#fb7185" style={{ marginTop: 2, flexShrink: 0 }} />
+                <p style={{ color: '#fb7185', fontSize: '0.85rem' }}>{uploadError}</p>
+              </div>
+            )}
+
+            {editSection === 'personal' && editData && (
               <>
-                <div className="form-group"><label>Name</label><input className="form-input" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} /></div>
-                <div className="form-group"><label>Role</label><input className="form-input" value={editData.role} onChange={e => setEditData({...editData, role: e.target.value})} /></div>
-                <div className="form-group"><label>Location</label><input className="form-input" value={editData.location} onChange={e => setEditData({...editData, location: e.target.value})} /></div>
-                
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Name</label>
+                  <input style={inputStyle} value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} />
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Role</label>
+                  <input style={inputStyle} value={editData.role} onChange={(e) => setEditData({ ...editData, role: e.target.value })} />
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Location</label>
+                  <input style={inputStyle} value={editData.location} onChange={(e) => setEditData({ ...editData, location: e.target.value })} />
+                </div>
+
                 {/* Profile Picture Upload */}
-                <div className="pt-2 border-t border-slate-700">
-                    <label className="text-sm font-bold text-slate-300 mb-2 block">Profile Picture</label>
-                    <div className="flex items-center gap-4 mb-3">
-                      <img src={editData.profilePic} alt="Preview" className="w-16 h-16 rounded-full object-cover border border-slate-600" />
-                      <div className="flex-1">
-                         <div className="upload-btn-wrapper">
-                            <button className="btn-upload"><ImageIcon size={16}/> Upload New Picture</button>
-                            <input type="file" name="profilePic" className="upload-input" accept="image/*" onChange={(e) => handleFileUpload(e, 'profilePic')} />
-                         </div>
-                      </div>
-                    </div>
-                    <div className="form-group mt-1">
-                        <label className="text-xs text-slate-500">Or use Image URL</label>
-                        <input className="form-input" placeholder="https://..." value={editData.profilePic} onChange={e => setEditData({...editData, profilePic: e.target.value})} />
-                    </div>
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Profile Picture</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
+                    <img src={editData.profilePic} alt="Preview" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-color)' }} />
+                    <label style={{
+                      ...btnStyle,
+                      background: 'transparent',
+                      border: '1px dashed var(--text-muted)',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}>
+                      <ImageIcon size={14} /> Upload
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'profilePic')} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                    </label>
+                  </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>Or use Image URL</label>
+                    <input style={inputStyle} placeholder="https://..." value={editData.profilePic} onChange={(e) => setEditData({ ...editData, profilePic: e.target.value })} />
+                  </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-700">
-                     <label className="text-sm font-bold text-slate-300">Education</label>
-                    <div className="form-group mt-1"><label>College</label><input className="form-input" value={editData.education.college} onChange={e => setEditData({...editData, education: {...editData.education, college: e.target.value}})} /></div>
-                    <div className="form-group"><label>Degree</label><input className="form-input" value={editData.education.degree} onChange={e => setEditData({...editData, education: {...editData.education, degree: e.target.value}})} /></div>
-                    <div className="form-group"><label>CGPA</label><input className="form-input" value={editData.education.cgpa} onChange={e => setEditData({...editData, education: {...editData.education, cgpa: e.target.value}})} /></div>
+                {/* Education */}
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Education</label>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>College</label>
+                    <input style={inputStyle} value={editData.education.college} onChange={(e) => setEditData({ ...editData, education: { ...editData.education, college: e.target.value } })} />
+                  </div>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>Degree</label>
+                    <input style={inputStyle} value={editData.education.degree} onChange={(e) => setEditData({ ...editData, education: { ...editData.education, degree: e.target.value } })} />
+                  </div>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>CGPA</label>
+                    <input style={inputStyle} value={editData.education.cgpa} onChange={(e) => setEditData({ ...editData, education: { ...editData.education, cgpa: e.target.value } })} />
+                  </div>
                 </div>
 
-                {/* Resume Upload */}
-                <div className="pt-2 border-t border-slate-700">
-                    <label className="text-sm font-bold text-slate-300 mb-2 block">Social & Resume</label>
-                    
-                    <div className="form-group">
-                       <label>Resume (PDF Link or Upload)</label>
-                       <div className="flex gap-2 mb-2">
-                          <input className="form-input flex-1" value={editData.social.resume} onChange={e => setEditData({...editData, social: {...editData.social, resume: e.target.value}})} placeholder="Paste Link or Upload PDF..." />
-                          <div className="upload-btn-wrapper" style={{width: 'auto'}}>
-                            <button className="btn-upload" title="Upload PDF"><Upload size={16}/></button>
-                            <input type="file" className="upload-input" accept="application/pdf" onChange={(e) => handleFileUpload(e, 'resume')} />
-                          </div>
-                       </div>
-                       <p className="text-xs text-slate-500">Note: Large PDFs should be hosted on Google Drive.</p>
+                {/* Social */}
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Social & Resume</label>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>Resume (Link or Upload)</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input style={{ ...inputStyle, flex: 1 }} value={editData.social.resume} onChange={(e) => setEditData({ ...editData, social: { ...editData.social, resume: e.target.value } })} placeholder="Paste Link..." />
+                      <label style={{ ...btnStyle, background: 'transparent', border: '1px dashed var(--text-muted)', color: 'var(--text-secondary)', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+                        <Upload size={14} />
+                        <input type="file" accept="application/pdf" onChange={(e) => handleFileUpload(e, 'resume')} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                      </label>
                     </div>
-
-                    <div className="form-group"><label>GitHub URL</label><input className="form-input" value={editData.social.github} onChange={e => setEditData({...editData, social: {...editData.social, github: e.target.value}})} /></div>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>Note: Large PDFs should be hosted on Google Drive.</p>
+                  </div>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>GitHub URL</label>
+                    <input style={inputStyle} value={editData.social.github} onChange={(e) => setEditData({ ...editData, social: { ...editData.social, github: e.target.value } })} />
+                  </div>
                 </div>
               </>
             )}
 
-            {editSection === 'skills' && (
-              <div className="space-y-6">
+            {editSection === 'skills' && editData && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {editData.map((cat, idx) => (
-                  <div key={idx} className="p-4 border border-slate-700 rounded-lg">
-                    <input className="form-input mb-2 font-bold" value={cat.title} onChange={e => { const newCats = [...editData]; newCats[idx].title = e.target.value; setEditData(newCats); }} />
-                    <textarea className="form-input" rows="3" value={cat.skills.join(', ')} onChange={e => { const newCats = [...editData]; newCats[idx].skills = e.target.value.split(',').map(s => s.trim()); setEditData(newCats); }} />
+                  <div key={idx} style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '0.75rem' }}>
+                    <input
+                      style={{ ...inputStyle, fontWeight: 600, marginBottom: '0.5rem' }}
+                      value={cat.title}
+                      onChange={(e) => { const n = [...editData]; n[idx].title = e.target.value; setEditData(n); }}
+                    />
+                    <textarea
+                      style={{ ...inputStyle, resize: 'vertical' }}
+                      rows="3"
+                      value={cat.skills.join(', ')}
+                      onChange={(e) => { const n = [...editData]; n[idx].skills = e.target.value.split(',').map((s) => s.trim()); setEditData(n); }}
+                    />
                   </div>
                 ))}
               </div>
             )}
 
-            {editSection === 'projects' && (
-              <div className="space-y-6">
+            {editSection === 'projects' && editData && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {editData.map((proj, idx) => (
-                  <div key={idx} className="p-4 border border-slate-700 rounded-lg relative">
-                    <button onClick={() => { const newProjs = editData.filter((_, i) => i !== idx); setEditData(newProjs); }} className="absolute top-2 right-2 text-red-400 hover:text-red-300"><Trash2 size={16} /></button>
-                    <div className="form-group"><label>Title</label><input className="form-input" value={proj.title} onChange={e => { const newProjs = [...editData]; newProjs[idx].title = e.target.value; setEditData(newProjs); }} /></div>
-                    <div className="form-group"><label>Link</label><input className="form-input" value={proj.link} onChange={e => { const newProjs = [...editData]; newProjs[idx].link = e.target.value; setEditData(newProjs); }} /></div>
-                    <div className="form-group"><label>Description</label><textarea className="form-input" value={proj.description} onChange={e => { const newProjs = [...editData]; newProjs[idx].description = e.target.value; setEditData(newProjs); }} /></div>
-                    <div className="form-group"><label>Tech</label><input className="form-input" value={proj.tech.join(', ')} onChange={e => { const newProjs = [...editData]; newProjs[idx].tech = e.target.value.split(',').map(s => s.trim()); setEditData(newProjs); }} /></div>
+                  <div key={idx} style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '0.75rem', position: 'relative' }}>
+                    <button
+                      onClick={() => setEditData(editData.filter((_, i) => i !== idx))}
+                      style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#fb7185', cursor: 'pointer', padding: '0.25rem' }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.2rem' }}>Title</label>
+                      <input style={inputStyle} value={proj.title} onChange={(e) => { const n = [...editData]; n[idx].title = e.target.value; setEditData(n); }} />
+                    </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.2rem' }}>Link</label>
+                      <input style={inputStyle} value={proj.link} onChange={(e) => { const n = [...editData]; n[idx].link = e.target.value; setEditData(n); }} />
+                    </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.2rem' }}>Description</label>
+                      <textarea style={{ ...inputStyle, resize: 'vertical' }} value={proj.description} onChange={(e) => { const n = [...editData]; n[idx].description = e.target.value; setEditData(n); }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.2rem' }}>Tech (comma-separated)</label>
+                      <input style={inputStyle} value={proj.tech.join(', ')} onChange={(e) => { const n = [...editData]; n[idx].tech = e.target.value.split(',').map((s) => s.trim()); setEditData(n); }} />
+                    </div>
                   </div>
                 ))}
-                <button onClick={() => setEditData([...editData, { title: "New Project", link: "#", tech: [], description: "Description" }])} className="btn btn-secondary w-full justify-center"><Plus size={16} /> Add Project</button>
+                <button
+                  onClick={() => setEditData([...editData, { title: 'New Project', link: '#', tech: [], description: 'Description' }])}
+                  style={{ ...btnStyle, width: '100%', justifyContent: 'center', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+                >
+                  <Plus size={14} /> Add Project
+                </button>
               </div>
             )}
-          </div>
 
-          <div className="modal-actions">
-            <button className="btn btn-secondary flex-1 justify-center" onClick={() => setEditSection(null)}>Cancel</button>
-            <button className="btn btn-primary flex-1 justify-center" onClick={handleSave}><Save size={16} /> Save Changes</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const Navbar = () => (
-    <nav className="navbar">
-      <div className="container nav-content">
-        <span className="logo">GS.</span>
-        <div className="nav-links">
-          <a href="#about">About</a>
-          <a href="#skills">Skills</a>
-          <a href="#projects">Projects</a>
-          <a href="#contact">Contact</a>
-          {isAdmin && <button onClick={handleLogout} className="text-red-400 text-sm ml-4">Logout</button>}
-        </div>
-      </div>
-    </nav>
-  );
-
-  const ContactForm = () => {
-    const [formData, setFormData] = useState({ name: '', email: '', message: '' });
-    const [status, setStatus] = useState('idle');
-
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      if (!db) return;
-      setStatus('loading');
-      try {
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
-          ...formData,
-          createdAt: serverTimestamp(),
-          userId: user ? user.uid : 'anonymous'
-        });
-        setStatus('success');
-        setFormData({ name: '', email: '', message: '' });
-        setTimeout(() => setStatus('idle'), 3000);
-      } catch (error) {
-        console.error("Error sending message:", error);
-        setStatus('error');
-      }
-    };
-
-    return (
-      <form onSubmit={handleSubmit} className="contact-form">
-        <div className="form-group"><label>Name</label><input type="text" required className="form-input" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} /></div>
-        <div className="form-group"><label>Email</label><input type="email" required className="form-input" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} /></div>
-        <div className="form-group"><label>Message</label><textarea rows="4" required className="form-input" value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})}></textarea></div>
-        <button type="submit" disabled={status === 'loading'} className="btn btn-primary submit-btn">
-          {status === 'loading' ? <span className="animate-pulse">Sending...</span> : status === 'success' ? <span className="text-success">Message Sent!</span> : <>Send Message <Send size={16} /></>}
-        </button>
-      </form>
-    );
-  };
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-400">Loading portfolio...</div>;
-
-  return (
-    <div className="app-container">
-      <style>{styles}</style>
-      <Navbar />
-      <EditForm />
-      
-      {isLoginOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 className="modal-title">Admin Login</h3>
-              <button className="modal-close" onClick={() => setIsLoginOpen(false)}><X /></button>
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button
+                onClick={() => setEditSection(null)}
+                style={{ ...btnStyle, flex: 1, justifyContent: 'center', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                style={{ ...btnStyle, flex: 1, justifyContent: 'center', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white' }}
+              >
+                <Save size={14} /> Save
+              </button>
             </div>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="form-group"><label>Email</label><input name="email" type="email" required className="form-input" /></div>
-              <div className="form-group"><label>Password</label><input name="password" type="password" required className="form-input" /></div>
-              <button type="submit" className="btn btn-primary w-full justify-center">Login</button>
-            </form>
-          </div>
-        </div>
+          </Modal>
+
+          <main>
+            <Hero />
+            <Skills />
+            <Projects />
+            <Contact />
+          </main>
+
+          <Footer />
+        </>
       )}
+    </PortfolioProvider>
+  );
+}
 
-      {/* Hero Section */}
-      <section id="about" className="section hero-section">
-        <EditBtn section="personal" data={content.personalInfo} />
-        <div className="container">
-          <div className="hero-content">
-            <div className="hero-text">
-              
-              {content.personalInfo.profilePic && (
-                <div className="profile-pic-container">
-                  <img src={content.personalInfo.profilePic} alt="Profile" className="profile-pic" />
-                </div>
-              )}
-
-              <div className="status-badge">
-                <span className="status-dot"></span>Open to Opportunities
-              </div>
-              
-              <h1 className="title">{content.personalInfo.name}</h1>
-              <h2 className="subtitle">{content.personalInfo.role}</h2>
-              <p className="description">
-                Passionate about leveraging data to build intelligent systems. 
-                Specializing in Deep Learning, NLP, and scalable data architectures.
-                Based in <span style={{color: 'white'}}>{content.personalInfo.location}</span>.
-              </p>
-
-              <div className="social-links">
-                <a href={content.personalInfo.social.github} target="_blank" rel="noreferrer" className="btn btn-secondary"><Github size={20} /> GitHub</a>
-                <a href={content.personalInfo.social.linkedin} target="_blank" rel="noreferrer" className="btn btn-primary"><Linkedin size={20} /> LinkedIn</a>
-                <a href={content.personalInfo.social.resume} target="_blank" rel="noreferrer" className="btn btn-secondary"><Download size={20} /> Resume</a>
-              </div>
-            </div>
-
-            <div className="stats-card">
-              <h3 className="stats-header"><GraduationCap size={20} color="#60a5fa" /> Education</h3>
-              <div>
-                <p style={{color: '#f8fafc', fontWeight: 500}}>{content.personalInfo.education.college}</p>
-                <p style={{fontSize: '0.875rem', color: '#cbd5e1'}}>Degree: {content.personalInfo.education.degree}</p>
-                <p style={{fontSize: '0.875rem', color: '#94a3b8'}}>CGPA: {content.personalInfo.education.cgpa}</p>
-              </div>
-              <div className="stats-divider" />
-              <div>
-                <p style={{fontSize: '0.875rem', color: '#94a3b8', marginBottom: '0.5rem'}}>Key Competencies</p>
-                <div className="tag-container">
-                  <span className="tag">DSA</span><span className="tag">Model Deployment</span><span className="tag">Data pipelines</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Skills Section */}
-      <section id="skills" className="section skills-section">
-        <EditBtn section="skills" data={content.skillCategories} />
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Technical Arsenal</h2>
-            <p style={{color: '#94a3b8'}}>Tools and technologies I use to bring data to life.</p>
-          </div>
-
-          <div className="grid grid-4">
-            {content.skillCategories.map((category, idx) => (
-              <div key={idx} className="skill-card">
-                <div className="skill-icon-wrapper">
-                  {idx === 0 ? <Brain size={24} color="#c084fc" /> : 
-                   idx === 1 ? <Code2 size={24} color="#60a5fa" /> :
-                   idx === 2 ? <Database size={24} color="#34d399" /> :
-                   <Terminal size={24} color="#fb923c" />}
-                </div>
-                <h3 style={{fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', color: 'white'}}>{category.title}</h3>
-                <ul className="skill-list">
-                  {category.skills.map((skill, sIdx) => (
-                    <li key={sIdx}><ChevronRight size={14} />{skill}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Projects Section */}
-      <section id="projects" className="section">
-        <EditBtn section="projects" data={content.projects} />
-        <div className="container">
-          <div className="projects-header">
-            <div>
-              <h2 className="section-title">Featured Projects</h2>
-              <p style={{color: '#94a3b8'}}>A selection of my recent work in ML and Software Development.</p>
-            </div>
-            <a href={content.personalInfo.social.github} target="_blank" rel="noreferrer" className="github-link">View all on GitHub <ExternalLink size={16} /></a>
-          </div>
-
-          <div className="grid grid-2">
-            {content.projects.map((project, idx) => (
-              <a key={idx} href={project.link} target="_blank" rel="noreferrer" className="project-card">
-                <div className="project-image">
-                   <div className="project-external-icon"><ExternalLink size={20} color="#60a5fa" /></div>
-                  <Cpu size={64} color="#334155" />
-                </div>
-                <div className="project-content">
-                  <h3 className="project-title">{project.title}</h3>
-                  <p className="project-desc">{project.description}</p>
-                  <div className="tech-tags">
-                    {project.tech.map((t, tIdx) => (
-                      <span key={tIdx} className="tech-tag">{t}</span>
-                    ))}
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact" className="section" style={{background: 'rgba(15, 23, 42, 0.3)'}}>
-        <div className="container">
-          <div className="contact-container">
-            <div className="contact-grid">
-              <div>
-                <h2 className="section-title">Let's Connect</h2>
-                <p style={{color: '#94a3b8', marginBottom: '2rem'}}>
-                  I'm currently looking for new opportunities in Machine Learning and Data Science. 
-                </p>
-                <div>
-                  <div className="contact-info-item"><div className="icon-box"><MapPin size={20} color="#60a5fa" /></div><span>{content.personalInfo.location}</span></div>
-                  <div className="contact-info-item"><div className="icon-box"><Mail size={20} color="#34d399" /></div><a href={content.personalInfo.social.email}>{content.personalInfo.social.email.replace('mailto:', '')}</a></div>
-                </div>
-              </div>
-              <div className="form-box">
-                <ContactForm />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <footer className="footer">
-        <p>© {new Date().getFullYear()} {content.personalInfo.name}. Built with React & Vanilla CSS.</p>
-        <span className="admin-login-trigger" onClick={() => setIsLoginOpen(true)}>
-           <Lock size={12} /> Admin Login
-        </span>
-      </footer>
-    </div>
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
+    </ToastProvider>
   );
 }
