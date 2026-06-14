@@ -84,13 +84,35 @@ function ContactForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!db) return;
     setStatus('loading');
     try {
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
-        ...formData, createdAt: serverTimestamp(),
-        userId: user ? user.uid : 'anonymous',
+      // Send email via FormSubmit API
+      const emailResponse = await fetch("https://formsubmit.co/ajax/gughanguguu@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+          _subject: "New Contact Form Submission from Portfolio"
+        })
       });
+
+      if (!emailResponse.ok) {
+        throw new Error("Failed to send email via FormSubmit");
+      }
+
+      // Save to Firebase if configured
+      if (db) {
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
+          ...formData, createdAt: serverTimestamp(),
+          userId: user ? user.uid : 'anonymous',
+        });
+      }
+
       setStatus('success');
       setFormData({ name: '', email: '', message: '' });
       setShowConfetti(true);
