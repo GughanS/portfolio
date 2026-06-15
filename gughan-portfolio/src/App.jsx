@@ -39,7 +39,7 @@ import Footer from './components/Footer';
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
-  apiKey: "AIzaSyD179CAOa6Mp7fh6E55XDCFqVNBP1IdlcE",
+  apiKey: "API_PLACEHOLDER",
   authDomain: "portfolio-cd766.firebaseapp.com",
   projectId: "portfolio-cd766",
   storageBucket: "portfolio-cd766.firebasestorage.app",
